@@ -19,7 +19,12 @@ export default class FLIP extends Component {
   }
   // 生成一个二维数组
   getArrByLen=(len) => {
-    return Array(len).fill().map(() => [0, 0]);
+    return Array(len).fill('').map(() => {
+      return {
+        left: 0,
+        top:0
+      }
+    });
   }
   /**
    * 新增卡片
@@ -52,15 +57,17 @@ export default class FLIP extends Component {
   del = (delIndex)=>{
     let  {cardList} = this.state;
     let cardListRef = this.listRef.current;
-    let activeCardList = Array.prototype.slice.call(cardListRef.children).slice(delIndex)
+    let currentCardList = Array.prototype.slice.call(cardListRef.children)
+    console.log('currentCardList1',currentCardList)
+    let activeCardList = Array.prototype.slice.call(cardListRef.children).slice(delIndex + 1)
     console.log('activeCardList',activeCardList)
-    this.transArr = this.getArrByLen(this.activeCardList.length);
+    this.transArr = this.getArrByLen(activeCardList.length + 1);
+    console.log(' this.transArr', this.transArr)
     activeCardList.forEach((value, index) => {
       let rectInfo = value.getBoundingClientRect();
       this.transArr[index].left = rectInfo.left;
       this.transArr[index].top = rectInfo.top;
     });
-    console.log(' this.transArr', this.transArr)
     let newCardList = cardList.filter((value, index) => index !== delIndex)
     this.delIndex = delIndex
     this.setState(
@@ -70,41 +77,86 @@ export default class FLIP extends Component {
         }
     );
   }
-  componentDidUpdate(prevProps, prevState){
-    const currentCardList = Array.prototype.slice.call(this.listRef.current.children);
-    const {animateStatus} = this.state;
-    let activeCardList=[];
-    // 位置需要进行改变的节点（当前变化节点之前的所有节点，位置完全不变）
-    switch (animateStatus){
-      case 1:
-        activeCardList = currentCardList.slice(this.addNum)
-        break;
-      case 2:
-        activeCardList = currentCardList.slice(this.delIndex)
-        break;
-      // default:
-      //   break;
-    }
-    console.log('activeCardList',activeCardList, this.transArr)
-    activeCardList.forEach((value, index) => {
+  a = ()=>{
+    let {cardList} = this.state;
+    let cardListRef = this.listRef.current;
+    let currentCardList = Array.prototype.slice.call(cardListRef.children);
+    this.transArr = this.getArrByLen(currentCardList.length);
+    currentCardList.forEach((value, index) => {
       let rectInfo = value.getBoundingClientRect();
-      let invertLeft = this.transArr[index].left - rectInfo.left
-      let invertTop = this.transArr[index].top - rectInfo.top
-      const keyframes = [
-        {
-          transform: `translate(${invertLeft}px, ${invertTop}px)`,
-        },
-        { transform: "translate(0)" },
-      ]
-      const options = {
-        duration: 1000,
-        easing: "cubic-bezier(0,0,0.32,1)",
-      }
-      value.animate(keyframes, options)
+      this.transArr[index].left = rectInfo.left;
+      this.transArr[index].top = rectInfo.top;
     });
+    console.log('乱序',this.transArr)
+    let newCardList = this.shuffle(currentCardList)
+    console.log('newCardList',newCardList)
+    this.setState(
+        {
+          cardList: newCardList,
+          animateStatus: 3,
+        }
+    );
+
   }
-  disorder = ()=>{
-    console.log(11)
+  // by ustbhuangyi
+  shuffle = (arr) => {
+    let getRandomInt = (min, max) => {
+      return Math.floor(Math.random() * (max - min + 1) + min)
+    }
+    let ret = arr.slice()
+    for (let i = 0; i < ret.length; i++) {
+      let j = getRandomInt(0, i)
+      let t = ret[i]
+      ret[i] = ret[j]
+      ret[j] = t
+    }
+    return ret
+  }
+
+  componentDidUpdate(prevProps, prevState){
+    const {animateStatus,cardList} = this.state;
+    const currentCardList = Array.prototype.slice.call(this.listRef.current.children);
+    console.log('componentDidUpdate',cardList)
+    console.log('componentDidUpdate',currentCardList)
+    currentCardList.forEach((value, index) => {
+      let rectInfo = value.getBoundingClientRect();
+      console.log(rectInfo.left, rectInfo.top)
+    });
+    if (animateStatus){
+      console.log('currentCardList2',currentCardList)
+      let activeCardList=[];
+      // 位置需要进行改变的节点（可以大致认为位于当前变化节点之前的所有节点，位置完全不变）
+      switch (animateStatus){
+        case 1:
+          activeCardList = currentCardList.slice(this.addNum)
+          break;
+        case 2:
+          activeCardList = currentCardList.slice(this.delIndex)
+          break;
+        case 3:
+          activeCardList = currentCardList.slice()
+          break;
+        default:
+          break;
+      }
+      activeCardList.forEach((value, index) => {
+        let rectInfo = value.getBoundingClientRect();
+        console.log(rectInfo.left, rectInfo.top)
+        let invertLeft = this.transArr[index].left - rectInfo.left
+        let invertTop = this.transArr[index].top - rectInfo.top
+        const keyframes = [
+          {
+            transform: `translate(${invertLeft}px, ${invertTop}px)`,
+          },
+          { transform: "translate(0)" },
+        ]
+        const options = {
+          duration: 1000,
+          easing: "cubic-bezier(0,0,0.32,1)",
+        }
+        value.animate(keyframes, options)
+      });
+    }
   }
   componentDidMount() {
     let cardList = this.creatCardList(this.state.initCardNum);
@@ -118,6 +170,7 @@ export default class FLIP extends Component {
   }
 
   render() {
+    console.log('render,')
     let { cardList } = this.state;
     return <div className='page'>
       <div onClick={()=>{
@@ -126,16 +179,15 @@ export default class FLIP extends Component {
         新增
       </div>
       <div onClick={()=>{
-        this.add(2)
+        this.a(2)
       }}>
-        新增
+        乱序
       </div>
       <div className='card-container' ref={this.listRef}>
         {
           cardList.map((value,index)=>{
-            return  <div className='card-item' id={index} key={index}
-                         style={{
-              zIndex: 9999-index
+            return  <div className='card-item' id={index} key={index} style={{
+              zIndex: index
             }}
             onClick={()=>{
               this.del(index)
