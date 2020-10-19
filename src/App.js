@@ -68,20 +68,26 @@ export default class FLIP extends Component {
     let cardListRef = this.listRef.current;
     let currentCardList = Array.prototype.slice.call(cardListRef.children);
     this.transArr = this.getArrByLen(currentCardList.length);
-    currentCardList.forEach((value, index) => {
-      let rectInfo = value.getBoundingClientRect();
-      this.transArr[index].left = rectInfo.left;
-      this.transArr[index].top = rectInfo.top;
-    });
-    let addList = this.getArrByLen(num)
-    let newCardList = cardList.concat(addList)
-    this.addNum = num
+
+    console.log('currentCardList',currentCardList)
+    let newCardList= this.createRectMap(currentCardList)
+    // let addList = this.getArrByLen(num)
+    // let newCardList = cardList.concat(addList)
+    // this.addNum = num
     this.setState(
         {
           cardList:newCardList,
           animateStatus: 1,
         }
     );
+  }
+  createRectMap=(imgs)=> {
+    return imgs.reduce((prev, cur,idx) => {
+      const rect = cur.getBoundingClientRect()
+      const { left, top } = rect
+      prev[idx] = { left, top }
+      return prev
+    }, {})
   }
   /**
    * 删除卡片
